@@ -118,3 +118,4 @@ rownames(EBweekend)=paste(rep("T",196), 1:196, sep="")
 EBweekend<-cbind.data.frame(c5,ag)
 View(EBweekend)
 
+# CRF 
