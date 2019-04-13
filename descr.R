@@ -118,4 +118,41 @@ rownames(EBweekend)=paste(rep("T",196), 1:196, sep="")
 EBweekend<-cbind.data.frame(c5,ag)
 View(EBweekend)
 
+
 # CRF 
+library(data.table)
+library(crfsuite)
+
+x<-as.data.table(EBweekend)
+x<-x[,Segment_previous := shift(Segment,n=1, type="lag"),by=list(Interval)]
+x<-x[,Segment_next := shift(Segment,n=1, type="lead"),by=list(Interval)]
+x<-x[,Binary_previous := shift(Binary,n=1, type="lag"),by=list(Interval)]
+x<-x[,Binary_next := shift(Binary,n=1, type="lead"),by=list(Interval)]
+x<-x[,Day_previous := shift(Day,n=1, type="lag"),by=list(Interval)]
+x<-x[,Day_next := shift(Day,n=1, type="lead"),by=list(Interval)]
+
+#ErrorDetected
+
+x<-x[,Segment_previous :=txt_sprintf("Segment[w-1]=%s",Segment_previous),by=list(Interval)]
+x<-x[,Segment_next :=txt_sprintf("Segment[w+1]=%s",Segment_next),by=list(Interval)]
+x<-x[,Binary_previous :=txt_sprintf("Binary[w-1]=%s",Binary_previous),by=list(Interval)]
+x<-x[,Binary_next :=txt_sprintf("Binary[w+1]=%s",Binary_next),by=list(Interval)]
+x<-x[,Day_previous :=txt_sprintf("Day[w-1]=%s",Day_previous),by=list(Interval)]
+x<-x[,Day_next :=txt_sprintf("Day[w+1]=%s",Day_next),by=list(Interval)]
+
+subset(x,Interval == P1,select=c("Interval","Binary","Binary_previous","Binary_next"))
+
+x<-as.data.frame(x)
+
+crf_train <- subset(x,data=="ned.train")
+crf_test<- subset(x,data=="testa")
+
+model<-crf(y=crf_train$label,
+           x=crf_train[,c("Segment","Segment_previous","Segment_next","Binary","Binary_previous","Binary_next",
+                          "Day", "Day_previous","Day_next"
+  )],
+          group=crf_train$Interval,
+          method="lbfgs",file="tagger.crfsuite",
+          options=list(max_iterations = 25, feature.minfreq=5,
+                       c1=0,c2=1))
+model
